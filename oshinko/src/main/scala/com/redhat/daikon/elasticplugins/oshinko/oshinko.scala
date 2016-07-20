@@ -17,8 +17,10 @@
 package com.redhat.daikon.elasticplugins.oshinko
 
 import com.redhat.daikon.elasticplugins.Service
+import org.apache.spark.scheduler.cluster.SchedulerBackendPlugin
 
-trait OshinkoService extends Service {
+class OshinkoService extends Service {
+  override def test = "oshinko!"
 }
 
 object OshinkoService {

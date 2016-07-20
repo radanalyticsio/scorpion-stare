@@ -1,14 +1,18 @@
-organization := "com.redhat.daikon"
 
-version := "0.0.1"
+val PROJECT_NAME = "scorpion-stare"
 
-scalaVersion := "2.10.5"
-
-crossScalaVersions := Seq("2.10.5", "2.11.8")
-
-licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0"))
+val SPARK_VERSION = "2.0.1-scorpion-stare-SNAPSHOT"
 
 def commonSettings = Seq(
+  organization := "com.redhat.daikon",
+  licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
+  version := "0.0.1-SNAPSHOT",
+  libraryDependencies ++= Seq(
+    "org.apache.spark" %% "spark-core" % SPARK_VERSION % "provided",
+    "org.apache.spark" %% "spark-sql" % SPARK_VERSION % "provided",
+    "org.apache.spark" %% "spark-mllib" % SPARK_VERSION % "provided"
+    ),
+  scalaVersion := "2.11.8",
   scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
   scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value+"/root-doc.txt"),
   seq(bintraySettings:_*),
@@ -18,12 +22,12 @@ def commonSettings = Seq(
 lazy val core = project.in(file("core"))
   .settings(commonSettings:_*)
   .settings(
-    name := "core"
+    name := s"$PROJECT_NAME-core"
     )
 
 lazy val oshinko = project.in(file("oshinko"))
   .dependsOn(core)
   .settings(commonSettings:_*)
   .settings(
-    name := "oshinko"
+    name := s"$PROJECT_NAME-oshinko"
     )

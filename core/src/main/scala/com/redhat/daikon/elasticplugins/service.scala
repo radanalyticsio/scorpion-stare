@@ -16,7 +16,10 @@
 
 package com.redhat.daikon.elasticplugins
 
-trait Service {
+import org.apache.spark.scheduler.cluster.SchedulerBackendPlugin
+
+trait Service extends SchedulerBackendPlugin {
+  override def test = "service!"
 }
 
 object Service {
