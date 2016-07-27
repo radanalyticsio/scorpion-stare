@@ -17,10 +17,11 @@
 package com.redhat.daikon.elasticplugins.oshinko
 
 import com.redhat.daikon.elasticplugins.Service
-import org.apache.spark.scheduler.cluster.SchedulerBackendPlugin
 
 class OshinkoService extends Service {
-  override def test = "oshinko!"
+  def request(newTotalWorkers: Int): Boolean = {
+    false
+  }
 }
 
 object OshinkoService {

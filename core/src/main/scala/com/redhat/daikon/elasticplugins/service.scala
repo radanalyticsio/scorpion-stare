@@ -16,12 +16,10 @@
 
 package com.redhat.daikon.elasticplugins
 
-import org.apache.spark.scheduler.cluster.SchedulerBackendPlugin
+import org.apache.spark.deploy.master.WorkerScaleoutService
 
-trait Service extends SchedulerBackendPlugin {
-  override def test = "service!"
+trait Service extends WorkerScaleoutService {
 }
 
 object Service {
 }
-
