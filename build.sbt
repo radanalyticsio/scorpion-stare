@@ -8,6 +8,7 @@ def commonSettings = Seq(
   licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
   version := "0.0.1-SNAPSHOT",
   libraryDependencies ++= Seq(
+    "net.databinder.dispatch" %% "dispatch-core" % "0.11.3",
     "org.apache.spark" %% "spark-core" % SPARK_VERSION % "provided",
     "org.apache.spark" %% "spark-sql" % SPARK_VERSION % "provided",
     "org.apache.spark" %% "spark-mllib" % SPARK_VERSION % "provided"

@@ -18,9 +18,43 @@ package com.redhat.daikon.elasticplugins.oshinko
 
 import com.redhat.daikon.elasticplugins.Service
 
+import dispatch._
+import Defaults._
+import scala.util.{ Try, Failure, Success }
+import scala.concurrent.duration._
+import scala.concurrent.Await
+
 class OshinkoService extends Service {
-  def request(newTotalWorkers: Int): Boolean = {
-    false
+  val successCode = 202
+
+  def request(newTotalWorkers: Int): Try[Int] = {
+    val status = for(
+      url <- Try { sys.env("OSHINKO_REST_URL") } ;
+      portStr <- Try { sys.env("OSHINKO_REST_PORT") } ;
+      port <- Try { portStr.toInt } ;
+      cluster <- Try { sys.env("SPARK_CLUSTER_NAME") } ;
+      put <- Try {
+        val h = host(url, port) / "cluster" / cluster
+        h.PUT <:< Map(
+          "name" -> cluster,
+          "masterCount" -> "1",
+          "workerCount" -> newTotalWorkers.toString
+          )
+        } ;
+      putURL <- Try { put.url } ;
+      res <- Try { Await.result(Http(put), Duration(5, SECONDS)) }
+    ) yield {
+      println(s"""REST URL = "$putURL" """)
+      res.getStatusCode()
+    }
+    status match {
+      case Failure(e) =>
+        Failure(e)
+      case Success(code) if (code != successCode) =>
+        Failure(new Exception(s"WARNING - oshinko worker scaleout request failed with code $code"))
+      case Success(_) =>
+        Success(newTotalWorkers)
+    }
   }
 }
 
