@@ -32,10 +32,10 @@ class OshinkoService extends Service {
       url <- Try { sys.env("OSHINKO_REST_URL") } ;
       portStr <- Try { sys.env("OSHINKO_REST_PORT") } ;
       port <- Try { portStr.toInt } ;
-      cluster <- Try { sys.env("SPARK_CLUSTER_NAME") } ;
+      cluster <- Try { sys.env("OSHINKO_SPARK_CLUSTER") } ;
       put <- Try {
-        val h = host(url, port) / "cluster" / cluster
-        h.PUT <:< Map(
+        val h = host(url, port) / "clusters" / cluster
+        h.POST <:< Map(
           "name" -> cluster,
           "masterCount" -> "1",
           "workerCount" -> newTotalWorkers.toString
