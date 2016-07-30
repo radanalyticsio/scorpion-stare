@@ -27,7 +27,9 @@ import scala.concurrent.Await
 class OshinkoService extends Service {
   val successCode = 202
 
-  def request(newTotalWorkers: Int): Try[Int] = {
+  def request(curWorkers: Int, curExecutors: Int, reqExecutors: Int): Try[Int] = {
+    // Assuming on executor per worker-container:
+    val newTotalWorkers = curWorkers + (reqExecutors - curExecutors)
     val status = for(
       url <- Try { sys.env("OSHINKO_REST_URL") } ;
       portStr <- Try { sys.env("OSHINKO_REST_PORT") } ;
