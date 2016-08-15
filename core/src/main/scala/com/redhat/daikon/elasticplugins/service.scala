@@ -16,9 +16,42 @@
 
 package com.redhat.daikon.elasticplugins
 
+package logging {
+  trait Logging {
+    import org.slf4j.{Logger, LoggerFactory}
+
+    @transient private var _logger: Logger = null
+
+    def logger: Logger = {
+      if (_logger != null) {
+        _logger
+      } else {
+        _logger = LoggerFactory.getLogger(this.getClass.getName.stripSuffix("$"))
+        _logger
+      }
+    }
+
+    protected def logInfo(msg: => String) {
+      if (logger.isInfoEnabled) logger.info(msg)
+    }
+
+    protected def logDebug(msg: => String) {
+      if (logger.isDebugEnabled) logger.debug(msg)
+    }
+
+    protected def logWarning(msg: => String) {
+      if (logger.isWarnEnabled) logger.warn(msg)
+    }
+
+    protected def logError(msg: => String) {
+      if (logger.isErrorEnabled) logger.error(msg)
+    }
+  }
+}
+
 import org.apache.spark.deploy.master.WorkerScaleoutService
 
-trait Service extends WorkerScaleoutService {
+trait Service extends WorkerScaleoutService with logging.Logging {
 }
 
 object Service {
