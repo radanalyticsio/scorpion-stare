@@ -9,15 +9,18 @@ def commonSettings = Seq(
   version := "0.0.1-SNAPSHOT",
   libraryDependencies ++= Seq(
     "net.databinder.dispatch" %% "dispatch-core" % "0.11.3",
-    "org.apache.spark" %% "spark-core" % SPARK_VERSION % "provided",
-    "org.apache.spark" %% "spark-sql" % SPARK_VERSION % "provided",
-    "org.apache.spark" %% "spark-mllib" % SPARK_VERSION % "provided"
+    "org.apache.spark" %% "spark-core" % SPARK_VERSION % "provided"
     ),
   scalaVersion := "2.11.8",
   scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
   scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value+"/root-doc.txt"),
   seq(bintraySettings:_*),
-  seq(bintrayPublishSettings:_*)
+  seq(bintrayPublishSettings:_*),
+  test in assembly := {},
+  assemblyShadeRules in assembly := Seq(
+    ShadeRule.zap("scala.**").inAll,
+    ShadeRule.zap("org.slf4j.**").inAll
+    )
 )
 
 lazy val core = project.in(file("core"))
@@ -30,5 +33,6 @@ lazy val oshinko = project.in(file("oshinko"))
   .dependsOn(core)
   .settings(commonSettings:_*)
   .settings(
-    name := s"$PROJECT_NAME-oshinko"
+    name := s"$PROJECT_NAME-oshinko",
+    assemblyJarName in assembly := "scorpion_stare.jar"
     )
