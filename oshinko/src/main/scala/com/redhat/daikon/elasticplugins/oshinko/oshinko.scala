@@ -47,9 +47,10 @@ class OshinkoService extends Service {
     reqExecutors: Int): Try[Int] = {
     // Assming one executor per container (the default behavior, also desirable)
     val surplusWorkers = math.max(0, curCores - usedCores) / coresPerWorker
-    val deficitWorkers = math.max(0, reqExecutors - curExecutors)
+    val reqExec = if (reqExecutors > 999999 || reqExecutors < 0) math.max(minWorkers, curWorkers * 2) else reqExecutors
+    val deficitWorkers = math.max(0, reqExec - curExecutors)
     val newWorkers = math.max(minWorkers, curWorkers + (deficitWorkers - surplusWorkers))
-    logWarning(s"surplus= $surplusWorkers  deficit= $deficitWorkers  new= $newWorkers  diff= ${relDiff(newWorkers,curWorkers)}")
+    logWarning(s"surplus= $surplusWorkers  deficit= $deficitWorkers  new= $newWorkers  diff= ${relDiff(newWorkers, curWorkers)}")
     if (relDiff(newWorkers, curWorkers) < relMinDelta && curWorkers >= minWorkers) {
       logWarning(s"No change to current cluster size")
       Success(curWorkers)
@@ -62,25 +63,25 @@ class OshinkoService extends Service {
         port <- Try { portStr.toInt } ;
         cluster <- Try { sys.env("OSHINKO_SPARK_CLUSTER") } ;
         put <- Try {
-          val h = host(hostName, port) / "clusters" / cluster
-          h.POST <:< Map(
-            "name" -> cluster,
-            "masterCount" -> "1",
-            "workerCount" -> newWorkers.toString
-            )
+          val uri = host(hostName, port) / "clusters" / cluster
+          uri.PUT.setContentType("application/json", "UTF-8")
           } ;
+        body <- Try {
+            s"""{"name": "${cluster}", "masterCount": 1, "workerCount": $newWorkers}"""
+        };
         res <- Try {
-          logWarning(s"""REST URL = "${put.url}" """)
-          Await.result(Http(put), Duration(5, SECONDS))
+          logWarning(s"""Request url= "${put.url}" body= "$body" """)
+          Await.result(Http(put << body), Duration(5, SECONDS))
         }
       ) yield {
-        res.getStatusCode()
+        (res.getStatusCode(), res.getResponseBody())
       }
       status match {
         case Failure(e) =>
           Failure(e)
-        case Success(code) if (code != successCode) =>
-          Failure(new Exception(s"WARNING - oshinko worker request failed with code $code"))
+        case Success((code, body)) if (code != successCode) =>
+          logError(s"Oshinko API request returned with error: code= $code  body= $body")
+          Failure(new Exception(s"Oshinko worker request failed with code $code"))
         case Success(_) =>
           Success(newWorkers)
       }
