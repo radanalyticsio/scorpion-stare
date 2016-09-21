@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.redhat.daikon.elasticplugins.oshinko
+package io.radanalytics.elasticplugins.oshinko
 
-import com.redhat.daikon.elasticplugins.Service
+import io.radanalytics.elasticplugins.Service
 
 import org.slf4j.{Logger, LoggerFactory}
 

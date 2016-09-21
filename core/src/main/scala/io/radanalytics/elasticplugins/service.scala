@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.redhat.daikon.elasticplugins
+package io.radanalytics.elasticplugins
 
 package logging {
   trait Logging {

@@ -4,7 +4,7 @@ val PROJECT_NAME = "scorpion-stare"
 val SPARK_VERSION = "2.0.1-scorpion-stare-SNAPSHOT"
 
 def commonSettings = Seq(
-  organization := "com.redhat.daikon",
+  organization := "io.radanalytics",
   licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
   version := "0.0.1-SNAPSHOT",
   libraryDependencies ++= Seq(
