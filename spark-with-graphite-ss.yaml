@@ -1,0 +1,213 @@
+kind: Template
+apiVersion: v1
+template: spark-with-graphite
+metadata:
+  name: spark-with-graphite
+objects:
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: ${MASTER_NAME}
+    labels:
+      name: ${MASTER_NAME}
+      oshinko-cluster: ${CLUSTER_NAME}
+      oshinko-type: master
+  spec:
+    ports:
+      - protocol: TCP
+        port: 7077
+        targetPort: 7077
+    selector:
+      name: ${MASTER_NAME}
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: ${MASTER_NAME}-webui
+    labels:
+      name: ${MASTER_NAME}
+      oshinko-cluster: ${CLUSTER_NAME}
+      oshinko-type: webui
+  spec:
+    ports:
+      - protocol: TCP
+        port: 8080
+        targetPort: 8080
+    selector:
+      name: ${MASTER_NAME}
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: ${MASTER_NAME}-metrics
+    labels:
+      name: ${MASTER_NAME}
+  spec:
+    ports:
+      - protocol: TCP
+        port: 8000
+        targetPort: 8000
+    selector:
+      name: ${MASTER_NAME}
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: ${MASTER_NAME}-carbon
+    labels:
+      name: ${MASTER_NAME}
+  spec:
+    ports:
+      - protocol: TCP
+        port: 2003
+        targetPort: 2003
+    selector:
+      name: ${MASTER_NAME}
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: ${MASTER_NAME}
+    labels:
+      oshinko-cluster: ${CLUSTER_NAME}
+      oshinko-type: master
+  spec:
+    strategy:
+      type: Rolling
+    triggers:
+      - type: ConfigChange
+    replicas: 1
+    selector:
+      name: ${MASTER_NAME}
+    template:
+      metadata:
+        labels:
+          name: ${MASTER_NAME}
+          oshinko-cluster: ${CLUSTER_NAME}
+          oshinko-type: master
+      spec:
+        volumes:
+          - name: whisper
+            emptyDir:
+              medium: ""
+        containers:
+          - name: ${MASTER_NAME}
+            image: ${SPARK_MASTER_IMAGE}
+            env:
+              - name: SPARK_MASTER_PORT
+                value: "7077"
+              - name: SPARK_MASTER_WEBUI_PORT
+                value: "8080"
+              - name: SPARK_WORKER_CORES
+                value: "1"
+              - name: SPARK_WORKER_MEMORY
+                value: "1g"
+              - name: SPARK_MASTER_OPTS
+                value: "-Dspark.dynamicAllocation.enabled=true -Dspark.shuffle.service.enabled=true -Dspark.dynamicAllocation.sustainedSchedulerBacklogTimeout=30"
+            ports:
+              - containerPort: 7077
+                protocol: TCP
+              - containerPort: 8080
+                protocol: TCP
+          - name: ${MASTER_NAME}-graphite
+            image: ${GRAPHITE_IMAGE}
+            ports:
+              - containerPort: 8000
+                protocol: TCP
+            volumeMounts:
+              - name: whisper
+                mountPath: /var/lib/carbon/whisper
+          - name: ${MASTER_NAME}-carbon
+            image: ${CARBON_IMAGE}
+            ports:
+              - containerPort: 2003
+                protocol: TCP
+            volumeMounts:
+              - name: whisper
+                mountPath: /var/lib/carbon/whisper
+          - name: ${MASTER_NAME}-elastic
+            image: ${ELASTIC_IMAGE}
+            env:
+              - name: OSHINKO_REST_HOST
+                value: "$(OSHINKO_REST_SERVICE_HOST)"
+              - name: OSHINKO_REST_PORT
+                value: "8080"
+              - name: OSHINKO_SPARK_CLUSTER
+                value: ${CLUSTER_NAME}
+              - name: SPARK_WORKER_CORES
+                value: "1"
+              - name: SPARK_WORKER_MEMORY
+                value: "1g"
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: ${WORKER_NAME}
+    labels:
+      oshinko-cluster: ${CLUSTER_NAME}
+      oshinko-type: worker
+  spec:
+    strategy:
+      type: Rolling
+    triggers:
+      - type: ConfigChange
+    replicas: 3
+    selector:
+      name: ${WORKER_NAME}
+    template:
+      metadata:
+        labels:
+          name: ${WORKER_NAME}
+          oshinko-cluster: ${CLUSTER_NAME}
+          oshinko-type: worker
+      spec:
+        containers:
+          - name: ${WORKER_NAME}
+            image: ${SPARK_WORKER_IMAGE}
+            env:
+              - name: SPARK_MASTER_ADDRESS
+                value: spark://${MASTER_NAME}:7077
+              - name: SPARK_MASTER_UI_ADDRESS
+                value: http://${MASTER_NAME}-webui:8080
+              - name: SPARK_WORKER_CORES
+                value: "1"
+              - name: SPARK_WORKER_MEMORY
+                value: "1g"
+              - name: SPARK_WORKER_OPTS
+                value: "-Dspark.dynamicAllocation.enabled=true -Dspark.shuffle.service.enabled=true -Dspark.dynamicAllocation.sustainedSchedulerBacklogTimeout=30"
+
+parameters:
+- name: CLUSTER_NAME
+  description: The name of the cluster known to oshinko
+  required: true
+- name: SPARK_MASTER_IMAGE
+  description: Name of the Spark master image
+  required: true
+  value: docker.io/radanalyticsio/openshift-spark
+- name: SPARK_WORKER_IMAGE
+  description: Name of the Spark worker image
+  required: true
+  value: docker.io/radanalyticsio/openshift-spark
+- name: GRAPHITE_IMAGE
+  description: Name of the graphite-api image
+  required: true
+  value: docker.io/elmiko/graphite-api
+- name: CARBON_IMAGE
+  description: Name of the carbon image
+  required: true
+  value: docker.io/manyangled/carbon:ss
+- name: ELASTIC_IMAGE
+  description: Name of the elastic worker daemon image
+  required: true
+  value: docker.io/manyangled/elastic:latest
+- name: MASTER_NAME
+  description: master name used as a service name and a selector
+  generate: expression
+  from: "spm-[a-z0-9]{4}"
+  required: true
+- name: WORKER_NAME
+  description: worker name used as a selector
+  generate: expression
+  from: "spw-[a-z0-9]{4}"
+  required: true
